@@ -1,5 +1,6 @@
 import { redirect } from '@sveltejs/kit';
-import { createJournal, getAllProjects } from '$lib/server/db';
+import { createJournal, getAllProjects, getJournalWithFullContext } from '$lib/server/db';
+import { writeJournalToVault, isSyncEnabled } from '$lib/server/obsidian';
 
 export async function load() {
 	const projects = await getAllProjects();
@@ -18,6 +19,14 @@ export const actions = {
 		}
 
 		const id = await createJournal(title.trim(), content?.trim() ?? '', projectId ? Number(projectId) : undefined);
+
+		if (isSyncEnabled()) {
+			const journal = getJournalWithFullContext(id);
+			if (journal) {
+				await writeJournalToVault(journal);
+			}
+		}
+
 		throw redirect(303, `/journal/${id}`);
 	}
 };

@@ -10,12 +10,22 @@
 	let inactivityEnabled = $state(true);
 	let testingEmail = $state(false);
 
+	let obsidianVaultPath = $state('');
+	let obsidianSyncEnabled = $state(false);
+	let obsidianDeleteOnRemove = $state(false);
+	let validatingVault = $state(false);
+	let vaultValidation = $state<{ valid: boolean; error?: string } | null>(null);
+	let exportingJournals = $state(false);
+
 	$effect(() => {
 		email = data.settings.email ?? '';
 		reminderHour = data.settings.reminder_hour ?? '20';
 		inactivityDays = data.settings.inactivity_days ?? '3';
 		reminderEnabled = data.settings.reminder_enabled !== 'false';
 		inactivityEnabled = data.settings.inactivity_enabled !== 'false';
+		obsidianVaultPath = data.settings.obsidian_vault_path ?? '';
+		obsidianSyncEnabled = data.settings.obsidian_sync_enabled === 'true';
+		obsidianDeleteOnRemove = data.settings.obsidian_delete_on_remove === 'true';
 	});
 
 	$effect(() => {
@@ -38,6 +48,43 @@
 			toasts.add('Error sending test email', 'error');
 		}
 		testingEmail = false;
+	}
+
+	async function validateVault() {
+		validatingVault = true;
+		vaultValidation = null;
+		try {
+			const res = await fetch('/api/obsidian/validate', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ path: obsidianVaultPath })
+			});
+			vaultValidation = await res.json();
+			if (vaultValidation?.valid) {
+				toasts.add('Vault path is valid', 'success');
+			} else {
+				toasts.add(vaultValidation?.error ?? 'Invalid vault path', 'error');
+			}
+		} catch {
+			toasts.add('Error validating vault path', 'error');
+		}
+		validatingVault = false;
+	}
+
+	async function exportAllJournals() {
+		exportingJournals = true;
+		try {
+			const res = await fetch('/api/obsidian/export', { method: 'POST' });
+			const result = await res.json();
+			if (result.success) {
+				toasts.add(`Exported ${result.exported} journals to vault`, 'success');
+			} else {
+				toasts.add(`Exported ${result.exported} journals with ${result.errors.length} errors`, 'error');
+			}
+		} catch {
+			toasts.add('Error exporting journals', 'error');
+		}
+		exportingJournals = false;
 	}
 </script>
 
@@ -108,6 +155,54 @@
 					class="w-24 bg-void-700 border border-void-600 rounded px-3 py-2 text-void-50 focus:border-accent focus:outline-none"
 				/>
 			</div>
+		</section>
+
+		<section class="border border-void-600 rounded-lg p-5 bg-void-800">
+			<h2 class="text-lg font-bold text-void-100 mb-4">Obsidian Integration</h2>
+			<div class="mb-4">
+				<label for="obsidian-vault-path" class="block text-sm text-void-300 mb-1">Vault path (absolute path to your Obsidian vault folder)</label>
+				<div class="flex gap-2">
+					<input
+						id="obsidian-vault-path"
+						name="obsidian_vault_path"
+						type="text"
+						bind:value={obsidianVaultPath}
+						class="flex-1 bg-void-700 border border-void-600 rounded px-3 py-2 text-void-50 focus:border-accent focus:outline-none"
+						placeholder="/path/to/your/vault"
+					/>
+					<button
+						type="button"
+						onclick={validateVault}
+						disabled={validatingVault || !obsidianVaultPath}
+						class="px-4 py-2 bg-void-600 hover:bg-void-500 text-void-100 rounded transition-colors disabled:opacity-50"
+					>
+						{validatingVault ? 'Validating...' : 'Validate'}
+					</button>
+				</div>
+				{#if vaultValidation}
+					<p class="mt-1 text-sm {vaultValidation.valid ? 'text-green-400' : 'text-red-400'}">
+						{vaultValidation.valid ? 'Valid vault path' : vaultValidation.error}
+					</p>
+				{/if}
+			</div>
+			<div class="flex items-center gap-3 mb-3">
+				<input type="checkbox" id="obsidian-sync" bind:checked={obsidianSyncEnabled} class="accent-accent" />
+				<input type="hidden" name="obsidian_sync_enabled" value={obsidianSyncEnabled ? 'true' : 'false'} />
+				<label for="obsidian-sync" class="text-sm text-void-200">Auto-sync journals to vault on save</label>
+			</div>
+			<div class="flex items-center gap-3 mb-4">
+				<input type="checkbox" id="obsidian-delete" bind:checked={obsidianDeleteOnRemove} class="accent-accent" />
+				<input type="hidden" name="obsidian_delete_on_remove" value={obsidianDeleteOnRemove ? 'true' : 'false'} />
+				<label for="obsidian-delete" class="text-sm text-void-200">Delete file from vault when journal is deleted</label>
+			</div>
+			<button
+				type="button"
+				onclick={exportAllJournals}
+				disabled={exportingJournals || !obsidianVaultPath}
+				class="text-sm text-accent hover:text-accent-hover disabled:opacity-50"
+			>
+				{exportingJournals ? 'Exporting...' : 'Export All Journals to Vault'}
+			</button>
 		</section>
 
 		<button

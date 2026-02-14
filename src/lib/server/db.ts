@@ -232,6 +232,56 @@ export async function deleteJournal(id: number) {
 	await db.execute({ sql: 'DELETE FROM journals WHERE id = ?', args: [id] });
 }
 
+export function getJournalWithFullContext(id: number) {
+	return db.prepare(`
+		SELECT
+			j.id,
+			j.title,
+			j.content,
+			j.created_at,
+			j.project_id,
+			p.title as project_title,
+			p.status as project_status,
+			p.difficulty as project_difficulty,
+			pl.name as pipeline_name
+		FROM journals j
+		LEFT JOIN projects p ON j.project_id = p.id
+		LEFT JOIN pipelines pl ON p.pipeline_id = pl.id
+		WHERE j.id = ?
+	`).get(id) as JournalWithFullContext | undefined;
+}
+
+export function getAllJournalsWithFullContext() {
+	return db.prepare(`
+		SELECT
+			j.id,
+			j.title,
+			j.content,
+			j.created_at,
+			j.project_id,
+			p.title as project_title,
+			p.status as project_status,
+			p.difficulty as project_difficulty,
+			pl.name as pipeline_name
+		FROM journals j
+		LEFT JOIN projects p ON j.project_id = p.id
+		LEFT JOIN pipelines pl ON p.pipeline_id = pl.id
+		ORDER BY j.created_at DESC
+	`).all() as JournalWithFullContext[];
+}
+
+export interface JournalWithFullContext {
+	id: number;
+	title: string;
+	content: string;
+	created_at: string;
+	project_id: number | null;
+	project_title: string | null;
+	project_status: string | null;
+	project_difficulty: string | null;
+	pipeline_name: string | null;
+}
+
 // --- Settings ---
 
 export async function getSetting(key: string): Promise<string | undefined> {
