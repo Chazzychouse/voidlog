@@ -1,8 +1,8 @@
 import { redirect } from '@sveltejs/kit';
 import { createJournal, getAllProjects } from '$lib/server/db';
 
-export function load() {
-	const projects = getAllProjects();
+export async function load() {
+	const projects = await getAllProjects();
 	return { projects };
 }
 
@@ -17,7 +17,7 @@ export const actions = {
 			return { error: 'Title is required' };
 		}
 
-		const id = createJournal(title.trim(), content?.trim() ?? '', projectId ? Number(projectId) : undefined);
+		const id = await createJournal(title.trim(), content?.trim() ?? '', projectId ? Number(projectId) : undefined);
 		throw redirect(303, `/journal/${id}`);
 	}
 };

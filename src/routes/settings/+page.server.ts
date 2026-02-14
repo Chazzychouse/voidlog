@@ -1,8 +1,10 @@
 import { getAllSettings, setSetting, getRecentNotifications } from '$lib/server/db';
 
-export function load() {
-	const settings = getAllSettings();
-	const notifications = getRecentNotifications();
+export async function load() {
+	const [settings, notifications] = await Promise.all([
+		getAllSettings(),
+		getRecentNotifications()
+	]);
 	return { settings, notifications };
 }
 
@@ -13,7 +15,7 @@ export const actions = {
 		for (const key of keys) {
 			const value = data.get(key) as string;
 			if (value !== null && value !== undefined) {
-				setSetting(key, value);
+				await setSetting(key, value);
 			}
 		}
 		return { success: true };

@@ -1,10 +1,12 @@
 import { error, redirect } from '@sveltejs/kit';
 import { getJournal, updateJournal, deleteJournal, getAllProjects } from '$lib/server/db';
 
-export function load({ params }) {
-	const journal = getJournal(Number(params.id));
+export async function load({ params }) {
+	const [journal, projects] = await Promise.all([
+		getJournal(Number(params.id)),
+		getAllProjects()
+	]);
 	if (!journal) throw error(404, 'Journal entry not found');
-	const projects = getAllProjects();
 	return { journal, projects };
 }
 
@@ -19,11 +21,11 @@ export const actions = {
 			return { error: 'Title is required' };
 		}
 
-		updateJournal(Number(params.id), title.trim(), content?.trim() ?? '', projectId ? Number(projectId) : undefined);
+		await updateJournal(Number(params.id), title.trim(), content?.trim() ?? '', projectId ? Number(projectId) : undefined);
 		return { success: true };
 	},
 	delete: async ({ params }) => {
-		deleteJournal(Number(params.id));
+		await deleteJournal(Number(params.id));
 		throw redirect(303, '/journal');
 	}
 };

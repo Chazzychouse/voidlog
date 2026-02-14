@@ -28,7 +28,7 @@ export async function sendEmail(subject: string, text: string, type: 'reminder' 
 			subject: `[Voidlog] ${subject}`,
 			text
 		});
-		logNotification(type, `${subject}: ${text}`);
+		await logNotification(type, `${subject}: ${text}`);
 		console.log(`[email] Sent: ${subject}`);
 		return true;
 	} catch (err) {
