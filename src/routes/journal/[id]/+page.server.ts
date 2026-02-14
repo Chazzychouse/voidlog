@@ -1,5 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
-import { getJournal, updateJournal, deleteJournal, getAllProjects } from '$lib/server/db';
+import { getJournal, updateJournal, deleteJournal, getAllProjects, getJournalWithFullContext } from '$lib/server/db';
+import { writeJournalToVault, deleteJournalFromVault, isSyncEnabled, isDeleteOnRemoveEnabled } from '$lib/server/obsidian';
 
 export async function load({ params }) {
 	const [journal, projects] = await Promise.all([
@@ -22,10 +23,24 @@ export const actions = {
 		}
 
 		await updateJournal(Number(params.id), title.trim(), content?.trim() ?? '', projectId ? Number(projectId) : undefined);
+
+		if (isSyncEnabled()) {
+			const journal = getJournalWithFullContext(Number(params.id));
+			if (journal) {
+				await writeJournalToVault(journal);
+			}
+		}
+
 		return { success: true };
 	},
 	delete: async ({ params }) => {
-		await deleteJournal(Number(params.id));
+		const journalId = Number(params.id);
+
+		if (isDeleteOnRemoveEnabled()) {
+			await deleteJournalFromVault(journalId);
+		}
+
+		deleteJournal(journalId);
 		throw redirect(303, '/journal');
 	}
 };
