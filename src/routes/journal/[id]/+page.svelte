@@ -8,11 +8,13 @@
 	let title = $state('');
 	let content = $state('');
 	let projectId = $state('');
+	let ticketId = $state('');
 
 	$effect(() => {
 		title = data.journal.title;
 		content = data.journal.content;
 		projectId = data.journal.project_id ? String(data.journal.project_id) : '';
+		ticketId = data.journal.ticket_id ? String(data.journal.ticket_id) : '';
 	});
 
 	$effect(() => {
@@ -43,7 +45,10 @@
 	<div class="text-sm text-void-400 mb-2">
 		{new Date(data.journal.created_at).toLocaleString()}
 		{#if data.journal.project_title}
-			<span class="ml-2 text-accent">({data.journal.project_title})</span>
+			<a href="/projects/{data.journal.project_id}" class="ml-2 text-accent hover:text-accent-hover">({data.journal.project_title})</a>
+		{/if}
+		{#if data.journal.ticket_title}
+			<a href="/tickets/{data.journal.ticket_id}" class="ml-2 text-warning hover:text-warning/80">[{data.journal.ticket_title}]</a>
 		{/if}
 	</div>
 
@@ -53,7 +58,9 @@
 				bind:title
 				bind:content
 				bind:projectId
+				bind:ticketId
 				projects={data.projects}
+				tickets={data.tickets}
 				error={form?.error ?? ''}
 				submitLabel="Save Changes"
 			/>

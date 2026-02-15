@@ -1,4 +1,6 @@
 <script lang="ts">
+	import TicketCard from '$lib/components/TicketCard.svelte';
+	import Modal from '$lib/components/Modal.svelte';
 	import { toasts } from '$lib/stores/toast';
 	import { invalidateAll, goto } from '$app/navigation';
 
@@ -9,6 +11,11 @@
 		{ value: 'in_progress', label: 'In Progress', color: 'bg-warning' },
 		{ value: 'completed', label: 'Completed', color: 'bg-success' }
 	];
+
+	let showCreateTicket = $state(false);
+	let newTicketTitle = $state('');
+	let newTicketDesc = $state('');
+	let newTicketPriority = $state('medium');
 
 	async function setStatus(status: string) {
 		const res = await fetch('/api/projects', {
@@ -36,6 +43,28 @@
 		if (res.ok) {
 			toasts.add('Project deleted', 'success');
 			goto(`/pipelines/${data.project.pipeline_id}`);
+		}
+	}
+
+	async function createTicket() {
+		if (!newTicketTitle.trim()) return;
+		const res = await fetch('/api/tickets', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				project_id: data.project.id,
+				title: newTicketTitle.trim(),
+				description: newTicketDesc.trim(),
+				priority: newTicketPriority
+			})
+		});
+		if (res.ok) {
+			toasts.add('Ticket created', 'success');
+			newTicketTitle = '';
+			newTicketDesc = '';
+			newTicketPriority = 'medium';
+			showCreateTicket = false;
+			await invalidateAll();
 		}
 	}
 
@@ -83,6 +112,38 @@
 		</div>
 	</div>
 
+	<div class="mb-8">
+		<div class="flex items-center justify-between mb-4">
+			<div class="flex items-center gap-4">
+				<h2 class="text-lg font-bold text-void-100">Tickets</h2>
+				{#if data.ticketStats.total > 0}
+					<div class="flex items-center gap-3 text-xs text-void-400">
+						<span>{data.ticketStats.total} total</span>
+						<span class="text-success">{data.ticketStats.done} done</span>
+						<span class="text-warning">{data.ticketStats.in_progress} active</span>
+						<span>{data.ticketStats.open} open</span>
+					</div>
+				{/if}
+			</div>
+			<button
+				onclick={() => (showCreateTicket = true)}
+				class="bg-accent hover:bg-accent-hover text-void-900 font-bold px-4 py-2 rounded text-sm transition-colors"
+			>
+				+ New Ticket
+			</button>
+		</div>
+
+		{#if data.tickets.length === 0}
+			<p class="text-void-400">No tickets for this project yet.</p>
+		{:else}
+			<div class="flex flex-col gap-3">
+				{#each data.tickets as ticket}
+					<TicketCard {ticket} />
+				{/each}
+			</div>
+		{/if}
+	</div>
+
 	<div>
 		<div class="flex items-center justify-between mb-4">
 			<h2 class="text-lg font-bold text-void-100">Journal Entries</h2>
@@ -106,3 +167,28 @@
 		{/if}
 	</div>
 </div>
+
+<Modal bind:open={showCreateTicket} title="New Ticket">
+	<form onsubmit={(e) => { e.preventDefault(); createTicket(); }} class="space-y-4">
+		<div>
+			<label for="ticket-title" class="block text-sm text-void-300 mb-1">Title</label>
+			<input id="ticket-title" type="text" bind:value={newTicketTitle} class="w-full bg-void-700 border border-void-600 rounded px-3 py-2 text-void-50 focus:border-accent focus:outline-none" placeholder="e.g. Fix login bug" />
+		</div>
+		<div>
+			<label for="ticket-desc" class="block text-sm text-void-300 mb-1">Description</label>
+			<textarea id="ticket-desc" bind:value={newTicketDesc} rows="3" class="w-full bg-void-700 border border-void-600 rounded px-3 py-2 text-void-50 focus:border-accent focus:outline-none"></textarea>
+		</div>
+		<div>
+			<label for="ticket-priority" class="block text-sm text-void-300 mb-1">Priority</label>
+			<select id="ticket-priority" bind:value={newTicketPriority} class="w-full bg-void-700 border border-void-600 rounded px-3 py-2 text-void-50 focus:border-accent focus:outline-none">
+				<option value="low">Low</option>
+				<option value="medium">Medium</option>
+				<option value="high">High</option>
+			</select>
+		</div>
+		<div class="flex gap-2 justify-end">
+			<button type="button" onclick={() => (showCreateTicket = false)} class="px-4 py-2 text-sm text-void-300 hover:text-void-100">Cancel</button>
+			<button type="submit" class="bg-accent hover:bg-accent-hover text-void-900 font-bold px-4 py-2 rounded text-sm transition-colors">Create</button>
+		</div>
+	</form>
+</Modal>

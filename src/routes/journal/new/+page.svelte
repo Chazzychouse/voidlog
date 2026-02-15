@@ -7,6 +7,7 @@
 	let title = $state('');
 	let content = $state('');
 	let projectId = $state($page.url.searchParams.get('project') ?? '');
+	let ticketId = $state($page.url.searchParams.get('ticket') ?? '');
 </script>
 
 <div class="max-w-3xl">
@@ -21,7 +22,9 @@
 			bind:title
 			bind:content
 			bind:projectId
+			bind:ticketId
 			projects={data.projects}
+			tickets={data.tickets}
 			error={form?.error ?? ''}
 			submitLabel="Create Entry"
 		/>

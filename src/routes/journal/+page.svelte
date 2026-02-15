@@ -43,6 +43,9 @@
 					{#if j.project_title}
 						<span class="text-xs text-accent mt-1 inline-block">{j.project_title}</span>
 					{/if}
+					{#if j.ticket_title}
+						<span class="text-xs text-warning mt-1 inline-block ml-2">[{j.ticket_title}]</span>
+					{/if}
 					<p class="text-sm text-void-300 mt-2 line-clamp-3">{j.content}</p>
 				</a>
 			{/each}

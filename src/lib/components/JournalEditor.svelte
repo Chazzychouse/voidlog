@@ -3,17 +3,32 @@
 		title = $bindable(''),
 		content = $bindable(''),
 		projectId = $bindable(''),
+		ticketId = $bindable(''),
 		projects = [],
+		tickets = [],
 		error = '',
 		submitLabel = 'Save'
 	}: {
 		title: string;
 		content: string;
 		projectId: string;
+		ticketId: string;
 		projects: { id: number; title: string; pipeline_name: string }[];
+		tickets: { id: number; project_id: number; title: string }[];
 		error?: string;
 		submitLabel?: string;
 	} = $props();
+
+	let filteredTickets = $derived(
+		projectId ? tickets.filter(t => t.project_id === Number(projectId)) : []
+	);
+
+	$effect(() => {
+		// Clear ticket selection when project changes and ticket doesn't belong to new project
+		if (ticketId && !filteredTickets.some(t => t.id === Number(ticketId))) {
+			ticketId = '';
+		}
+	});
 </script>
 
 {#if error}
@@ -47,6 +62,23 @@
 			{/each}
 		</select>
 	</div>
+
+	{#if filteredTickets.length > 0}
+		<div>
+			<label for="ticket_id" class="block text-sm text-void-300 mb-1">Linked Ticket (optional)</label>
+			<select
+				id="ticket_id"
+				name="ticket_id"
+				bind:value={ticketId}
+				class="w-full bg-void-700 border border-void-600 rounded px-3 py-2 text-void-50 focus:border-accent focus:outline-none"
+			>
+				<option value="">No ticket</option>
+				{#each filteredTickets as t}
+					<option value={String(t.id)}>{t.title}</option>
+				{/each}
+			</select>
+		</div>
+	{/if}
 
 	<div>
 		<label for="content" class="block text-sm text-void-300 mb-1">Content (markdown)</label>

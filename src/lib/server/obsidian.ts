@@ -80,6 +80,10 @@ export function buildFrontmatter(journal: JournalWithFullContext): string {
 		lines.push(`status: "${journal.project_status}"`);
 	}
 
+	if (journal.ticket_title) {
+		lines.push(`ticket: "${escapeYamlString(journal.ticket_title)}"`);
+	}
+
 	lines.push('source: voidlog');
 	lines.push('---');
 

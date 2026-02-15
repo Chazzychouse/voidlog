@@ -1,14 +1,15 @@
 import { error, redirect } from '@sveltejs/kit';
-import { getJournal, updateJournal, deleteJournal, getAllProjects, getJournalWithFullContext } from '$lib/server/db';
+import { getJournal, updateJournal, deleteJournal, getAllProjects, getAllTickets, getJournalWithFullContext } from '$lib/server/db';
 import { writeJournalToVault, deleteJournalFromVault, isSyncEnabled, isDeleteOnRemoveEnabled } from '$lib/server/obsidian';
 
 export async function load({ params }) {
-	const [journal, projects] = await Promise.all([
+	const [journal, projects, tickets] = await Promise.all([
 		getJournal(Number(params.id)),
-		getAllProjects()
+		getAllProjects(),
+		getAllTickets()
 	]);
 	if (!journal) throw error(404, 'Journal entry not found');
-	return { journal, projects };
+	return { journal, projects, tickets };
 }
 
 export const actions = {
@@ -17,12 +18,19 @@ export const actions = {
 		const title = data.get('title') as string;
 		const content = data.get('content') as string;
 		const projectId = data.get('project_id') as string;
+		const ticketId = data.get('ticket_id') as string;
 
 		if (!title?.trim()) {
 			return { error: 'Title is required' };
 		}
 
-		await updateJournal(Number(params.id), title.trim(), content?.trim() ?? '', projectId ? Number(projectId) : undefined);
+		await updateJournal(
+			Number(params.id),
+			title.trim(),
+			content?.trim() ?? '',
+			projectId ? Number(projectId) : undefined,
+			ticketId ? Number(ticketId) : undefined
+		);
 
 		if (isSyncEnabled()) {
 			const journal = getJournalWithFullContext(Number(params.id));
